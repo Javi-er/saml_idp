@@ -5,8 +5,8 @@
 use Drupal\Core\DrupalKernel;
 use Drupal\Core\Url;
 use SimpleSAML\Utils\HTTP;
-use Drupal\user\Entity\User;
 use Symfony\Component\HttpFoundation\Request;
+
 
 /**
  * Drupalath authentication source for using Drupal's login page.
@@ -40,13 +40,20 @@ class sspmod_drupalauth_Auth_Source_External extends SimpleSAML_Auth_Source {
    * Bootstrap Drupal, e.g., if we're being called from simplesamlphp.
    * @see index.php
    */
-  protected function bootstrap() {
+  protected function bootstrap($config = null) {
     try {
       $this->container = \Drupal::getContainer();
     }
     catch (Exception $e) {
       $finder = new \DrupalFinder\DrupalFinder();
-      if ($finder->locateRoot(getcwd())) {
+
+      // Allow to define a custom Drupal location from Saml authosources.
+      $root = getcwd();
+      if(isset($config['drupalroot'])) {
+        $root = $config['drupalroot'];
+      }
+
+      if ($finder->locateRoot($root)) {
         $classloader = require $finder->getVendorDir() . '/autoload.php';
       }
       else {
@@ -75,7 +82,7 @@ class sspmod_drupalauth_Auth_Source_External extends SimpleSAML_Auth_Source {
     /* Call the parent constructor first, as required by the interface. */
     parent::__construct($info, $config);
 
-    $this->bootstrap();
+    $this->bootstrap($config);
   }
 
   /**
@@ -85,10 +92,10 @@ class sspmod_drupalauth_Auth_Source_External extends SimpleSAML_Auth_Source {
    */
   private function getUser() {
     /* @var \Drupal\Core\Session\AccountInterface $user */
-    $user = $this->container->get('current_user')->getAccount();
+    $user = \Drupal::currentUser();
     if (!$user->isAnonymous()) {
       $site_config = $this->container->get('config.factory')->get('system.site');
-      $user_entity = User::load($user->id());
+      $user_entity = \Drupal\user\Entity\User::load($user->id());
       $attributes = array(
         'uid' => array($user->getUsername()),
         // Return the UUID as it's guaranteed not to change and reduces clashes.

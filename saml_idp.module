@@ -1,0 +1,38 @@
+<?php
+
+/**
+ * @file
+ * The SAML iDP module.
+ */
+
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\Session\AccountInterface;
+use Symfony\Component\HttpFoundation\RedirectResponse;
+use SimpleSAML\Utils\HTTP;
+
+/**
+ * Implements hook_help().
+ */
+function saml_idp_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    case 'help.page.saml_idp':
+      $output = '';
+      $output .= '<h3>' . t('Overview') .'</h3>';
+      $output .= '<p>' . t('It allows to use Drupal as an identity provider to connect with SimpleSamlPHP'). '</p>';
+      return $output;
+  }
+}
+
+/**
+ * On logout make sure the user is logged out of saml as well.
+ *
+ * @param \Drupal\Core\Session\AccountInterface $account
+ *
+ * @throws \SimpleSAML\Error\CriticalConfigurationError
+ */
+function saml_idp_user_logout(AccountInterface $account) {
+  $logout = HTTP::getBaseURL() . 'saml2/idp/SingleLogoutService.php?ReturnTo=/';
+  $response = new RedirectResponse($logout, 302);
+  $response->send();
+}
+
